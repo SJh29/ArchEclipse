@@ -100,6 +100,35 @@ def update_repo(repo_dir: Path, branch: str) -> None:
                 f"{branch}:refs/remotes/origin/{branch}",
             ]
         )
+
+        # On a personal branch, merge upstream in rather than force-resetting
+        # onto <branch>, so local commits and the checked-out branch survive.
+        current = run_cmd(
+            ["git", "-C", str(repo_dir), "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+        ).stdout.strip()
+        if current not in (branch, "HEAD"):
+            dirty = run_cmd(
+                ["git", "-C", str(repo_dir), "status", "--porcelain", "-uno"],
+                capture_output=True,
+            ).stdout.strip()
+            if dirty:
+                sys.exit(
+                    f"Uncommitted changes on '{current}'. Commit or stash them, then re-run."
+                )
+            merged = run_cmd(
+                ["git", "-C", str(repo_dir), "merge", "--no-edit", f"origin/{branch}"],
+                check=False,
+            )
+            if merged.returncode != 0:
+                run_cmd(["git", "-C", str(repo_dir), "merge", "--abort"], check=False)
+                sys.exit(
+                    f"Merging origin/{branch} into '{current}' hit conflicts; the merge was "
+                    f"aborted and nothing changed. Resolve manually, then re-run."
+                )
+            print(f"'{current}' successfully updated from origin/{branch}.")
+            return
+
         print("Forcing reset of local modifications...")
         run_cmd(["git", "-C", str(repo_dir), "reset", "--hard"])
         run_cmd(
