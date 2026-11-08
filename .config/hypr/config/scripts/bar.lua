@@ -79,10 +79,7 @@ local function launch()
     run(launch_command)
 
     local greeter_sync = home .. "/.config/quickshell/archeclipse/scripts/sync-greeter.sh"
-    -- pkexec, not the script's default sudo: bar.lua has no TTY to prompt on.
-    run("pkexec /usr/bin/env SYNC_GREETER_SUDO= HOME=" .. quote(home)
-        .. " XDG_CONFIG_HOME=" .. quote(home .. "/.config")
-        .. " " .. quote(greeter_sync) .. " >/dev/null 2>&1")
+    run(quote(greeter_sync) .. " >/dev/null 2>&1")
 end
 
 function M.run(...)
